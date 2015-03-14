@@ -94,7 +94,6 @@
         }
     </script>-->
     <script>
-
         var Vector2 = function(x, y) {
             var x, y;
             this.x = x;
@@ -124,6 +123,7 @@
 
         var controls = null;
         var vrController = null;
+        var effect = null;
         this.onload = function () {
             var scene, camera, renderer, mesh;
             var mesh2, mesh3, cloudMesh;
@@ -197,20 +197,12 @@
                 renderer.setSize(window.innerWidth, window.innerHeight);
 
                 document.body.appendChild(renderer.domElement);
-                console.log(camera);
-                console.log(renderer);
                 controls = new THREE.OrbitControls(camera, renderer.domElement);
-                //controls.connect();
-
                 controls.addEventListener('change', render);
 
-                var effect = new THREE.StereoEffect(renderer);
-                vrController = new THREE.VREffect({
-                    player: mesh,
-                    scene: scene,
-                    renderer: renderer,
-                    serverIp: '127.0.0.1'
-                });
+                effect = new THREE.VREffect(renderer);
+                effect.setSize(window.innerWidth, window.innerHeight);
+                vrController = new THREE.VREffect(renderer);
                 this.onresize = onWindowResize;
                 this.onmousemove = onMouseDown;
             }
@@ -227,8 +219,8 @@
                 {
                     //mesh2.rotateY((mousePosition.getX() - oldPosition.getX()) / 1000);
                     //mesh2.rotateX((mousePosition.getY() - oldPosition.getY()) / 1000);
-                    cloudMesh.rotateY((mousePosition.getX() - oldPosition.getX()) / 1005);
-                    cloudMesh.rotateX((mousePosition.getY() - oldPosition.getY()) / 1005);
+                    //cloudMesh.rotateY((mousePosition.getX() - oldPosition.getX()) / 1005);
+                    //cloudMesh.rotateX((mousePosition.getY() - oldPosition.getY()) / 1005);
                     
                     console.log('New Postion : ' + mousePosition.getX());
                     console.log('Old Postion : ' + oldPosition.getX());
@@ -247,6 +239,8 @@
                 camera.aspect = window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
                 renderer.setSize(window.innerWidth, window.innerHeight);
+
+                effect.setSize(window.innerWidth, window.innerHeight);
                 render();
             }
 
@@ -265,6 +259,7 @@
             }
             function render() {
                 renderer.render(scene, camera);
+                effect.render(scene, camera);
             }
         }
     </script>
