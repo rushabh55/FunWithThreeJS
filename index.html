@@ -4,7 +4,12 @@
     <title></title>
     <script src="three.js" ></script>
     <script src="https://dl.dropboxusercontent.com/u/3587259/Code/Threejs/OrbitControls.js"></script>
+    <script src="StereoEffect.js">
 
+    </script>
+    <script src="VRControls.js"></script>
+    <script src="VREffect.js"></script>
+    <script src="DeviceOrientationControls.js"></script>
     <!--<script>
         var Entity = function Entity() {
             var isVisible = true;
@@ -118,6 +123,7 @@
         ];
 
         var controls = null;
+        var vrController = null;
         this.onload = function () {
             var scene, camera, renderer, mesh;
             var mesh2, mesh3, cloudMesh;
@@ -127,7 +133,7 @@
 
             function init() {
                 scene = new THREE.Scene();
-                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
+                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 100000);
                 camera.position.z = FAR;
                 // Lights
                 var dirLight = new THREE.DirectionalLight(0xffffff);
@@ -142,7 +148,7 @@
                 scene.add(mesh);
 
                 geometry = new THREE.SphereGeometry(250, 100, 100);
-                var sphereMaterial = new THREE.MeshPhongMaterial({ map: new THREE.ImageUtils.loadTexture('earth.jpg'), specularMap: new THREE.ImageUtils.loadTexture('earthSpec.jpg'), specular: new THREE.Color('grey'), bumpScale: 50, bumpMap: new THREE.ImageUtils.loadTexture('earthNormal.jpg'), color: 0xffffff, wireframe: false, ambient: 0x050505, specular: 0x555555, shininess: 10 });
+                var sphereMaterial = new THREE.MeshPhongMaterial({ map: new THREE.ImageUtils.loadTexture('earth.jpg'), specularMap: new THREE.ImageUtils.loadTexture('earthSpec.jpg'), specular: new THREE.Color('grey'), bumpScale: 100, bumpMap: new THREE.ImageUtils.loadTexture('earthNormal.jpg'), color: 0xffffff, wireframe: false, ambient: 0x050505, specular: 0x555555, shininess: 10 });
                 mesh2 = new THREE.Mesh(geometry, sphereMaterial);
                 mesh2.position.set(-600, 0, 0);
                 scene.add(mesh2);
@@ -180,7 +186,7 @@
                     side: THREE.BackSide
                 });
                 var skybox = new THREE.Mesh(
-                      new THREE.CubeGeometry(2000, 2000, 2000),
+                      new THREE.CubeGeometry(100000, 100000, 100000),
                       skyBoxMaterial
                     );
 
@@ -194,9 +200,17 @@
                 console.log(camera);
                 console.log(renderer);
                 controls = new THREE.OrbitControls(camera, renderer.domElement);
-                
+                //controls.connect();
 
                 controls.addEventListener('change', render);
+
+                var effect = new THREE.StereoEffect(renderer);
+                vrController = new THREE.VREffect({
+                    player: mesh,
+                    scene: scene,
+                    renderer: renderer,
+                    serverIp: '127.0.0.1'
+                });
                 this.onresize = onWindowResize;
                 this.onmousemove = onMouseDown;
             }
@@ -211,13 +225,14 @@
                 var mousePosition = new Vector2(posX, posY);
                 if( oldPosition != null )
                 {
-                    mesh2.rotateY((mousePosition.getX() - oldPosition.getX()) / 1000);
-                    mesh2.rotateX((mousePosition.getY() - oldPosition.getY()) / 1000);
+                    //mesh2.rotateY((mousePosition.getX() - oldPosition.getX()) / 1000);
+                    //mesh2.rotateX((mousePosition.getY() - oldPosition.getY()) / 1000);
                     cloudMesh.rotateY((mousePosition.getX() - oldPosition.getX()) / 1005);
                     cloudMesh.rotateX((mousePosition.getY() - oldPosition.getY()) / 1005);
-                    oldPosition = mousePosition;
+                    
                     console.log('New Postion : ' + mousePosition.getX());
                     console.log('Old Postion : ' + oldPosition.getX());
+                    oldPosition = mousePosition;
                 }
                 else {
                     oldPosition = mousePosition
@@ -241,8 +256,11 @@
                 requestAnimationFrame(animate);
                 mesh.rotation.x += 0.01;
                 mesh.rotation.y += 0.02;
+                mesh2.rotation.x += 0.04;
+                mesh2.rotation.y += 0.06;
                 controls.update();
                 console.log(controls);
+                vrController.update(scene);
                 render();
             }
             function render() {
