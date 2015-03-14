@@ -1,0 +1,257 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title></title>
+    <script src="three.js" ></script>
+    <script src="https://dl.dropboxusercontent.com/u/3587259/Code/Threejs/OrbitControls.js"></script>
+
+    <!--<script>
+        var Entity = function Entity() {
+            var isVisible = true;
+            var geometry, material, mesh;
+            var object = this;
+            var position;
+
+            object.isVisible = function () {
+                return isVisible;
+            }            
+
+            object.hide = function () {
+                isVisible = false;
+            }
+
+            object.show = function () {
+                isVisible = true;
+            }
+
+            object.reset = function () {
+                position = null;
+            }
+
+            object.update = function () {
+                
+            }
+
+            object.init = function () {
+                this.geometry = new THREE.BoxGeometry(200, 200, 200);
+                this.material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true, castShadow: true });
+                this.mesh = new THREE.Mesh(geometry, material);
+            }
+
+            object.getMesh = function () {
+                return this.mesh;
+            }
+
+            object.getMaterial = function () {
+                return this.material;
+            }
+
+            object.getGeometry = function () {
+                return this.geometry;
+            }
+        }
+        
+        var box;
+        var gameobjects = [];
+        this.onload = function () {
+            var scene, camera, renderer;
+            var geometry, material, mesh;
+
+            init();
+            animate();
+
+            function init() {
+                scene = new THREE.Scene();
+                var box = new Entity();
+                box.init();
+                scene.add(box.getMesh());
+                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
+                camera.position.z = 1000;
+
+                gameobjects.push(box);
+                renderer = new THREE.WebGLRenderer();
+                console.log(box);
+                renderer.setSize(window.innerWidth, window.innerHeight);
+
+                document.body.appendChild(renderer.domElement);
+                renderer.render(scene, camera, box, true);
+            }
+
+            function animate() {
+                requestAnimationFrame(animate);
+                gameobjects.forEach(function (obj) {
+                    obj.rotation.x += 0.01;
+                });
+
+                renderer.render(scene, camera);
+
+            }
+        }
+    </script>-->
+    <script>
+
+        var Vector2 = function(x, y) {
+            var x, y;
+            this.x = x;
+            this.y = y;
+            this.getX = function () {
+                return this.x;
+            }
+            this.getY = function () {
+                return this.y;
+            }
+            this.setX = function (x) {
+                this.x = x;
+            }
+            this.setY = function (y) {
+                this.y = y;
+            }
+        }
+
+        var skyboxSrc = [
+            'skybox/xp.jpg',
+            'skybox/xn.jpg',
+            'skybox/yn.jpg',
+            'skybox/yn.jpg',
+            'skybox/zp.jpg',
+            'skybox/zn.jpg'
+        ];
+
+        var controls = null;
+        this.onload = function () {
+            var scene, camera, renderer, mesh;
+            var mesh2, mesh3, cloudMesh;
+            var FAR = 1000;
+            init();
+            animate();
+
+            function init() {
+                scene = new THREE.Scene();
+                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
+                camera.position.z = FAR;
+                // Lights
+                var dirLight = new THREE.DirectionalLight(0xffffff);
+                dirLight.position.set(0, 1, 1).normalize();
+                scene.add(dirLight);
+
+                var geometry = new THREE.CubeGeometry(200, 200, 200);
+                var boxMaterial = new THREE.MeshPhongMaterial({ map: new THREE.ImageUtils.loadTexture('1.jpg'),color: 0xffffff, wireframe: false, ambient: 0x050505, specular: 0x555555, shininess: 10 });
+
+                mesh = new THREE.Mesh(geometry, boxMaterial);
+                //mesh.position.set(0, 0, 0);
+                scene.add(mesh);
+
+                geometry = new THREE.SphereGeometry(250, 100, 100);
+                var sphereMaterial = new THREE.MeshPhongMaterial({ map: new THREE.ImageUtils.loadTexture('earth.jpg'), specularMap: new THREE.ImageUtils.loadTexture('earthSpec.jpg'), specular: new THREE.Color('grey'), bumpScale: 50, bumpMap: new THREE.ImageUtils.loadTexture('earthNormal.jpg'), color: 0xffffff, wireframe: false, ambient: 0x050505, specular: 0x555555, shininess: 10 });
+                mesh2 = new THREE.Mesh(geometry, sphereMaterial);
+                mesh2.position.set(-600, 0, 0);
+                scene.add(mesh2);
+
+                geometry = new THREE.SphereGeometry(300, 100, 100);
+                var cloudMaterial = new THREE.MeshLambertMaterial({
+                    map: new THREE.Texture('cloudNormal.jpg'),
+                    side: THREE.FrontSide,
+                    opacity: 0.5,
+                    light: 100,
+                    transparent: true,
+                    //depthWrite: true,
+                    color: 0xffffff,
+                    ambient: 0xffffff, specular: 0xffffff,
+                });
+                cloudMesh = new THREE.Mesh(geometry, cloudMaterial);
+                cloudMesh.position.set(-600, 0, 0);
+                scene.add(cloudMesh);
+
+
+                var ptLight = new THREE.PointLight(0xffffff, 10, 1000);
+                ptLight.position.set(-600, -300, 0);
+                scene.add(ptLight);
+
+                //skybox stuff
+                var cubemap = THREE.ImageUtils.loadTextureCube(skyboxSrc); // load textures
+                cubemap.format = THREE.RGBFormat;
+                var shader = THREE.ShaderLib['cube']; // init cube shader from built-in lib
+                shader.uniforms['tCube'].value = cubemap; // apply textures to shader
+                var skyBoxMaterial = new THREE.ShaderMaterial({
+                    fragmentShader: shader.fragmentShader,
+                    vertexShader: shader.vertexShader,
+                    uniforms: shader.uniforms,
+                    depthWrite: false,
+                    side: THREE.BackSide
+                });
+                var skybox = new THREE.Mesh(
+                      new THREE.CubeGeometry(2000, 2000, 2000),
+                      skyBoxMaterial
+                    );
+
+                scene.add(skybox);
+
+                //end skybox
+                renderer = new THREE.WebGLRenderer();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+
+                document.body.appendChild(renderer.domElement);
+                console.log(camera);
+                console.log(renderer);
+                controls = new THREE.OrbitControls(camera, renderer.domElement);
+                
+
+                controls.addEventListener('change', render);
+                this.onresize = onWindowResize;
+                this.onmousemove = onMouseDown;
+            }
+
+
+            // Event Handlers
+            var oldPosition = null;
+            function onMouseDown() {
+                var e = window.event;
+                var posX = e.clientX;
+                var posY = e.clientY;
+                var mousePosition = new Vector2(posX, posY);
+                if( oldPosition != null )
+                {
+                    mesh2.rotateY((mousePosition.getX() - oldPosition.getX()) / 1000);
+                    mesh2.rotateX((mousePosition.getY() - oldPosition.getY()) / 1000);
+                    cloudMesh.rotateY((mousePosition.getX() - oldPosition.getX()) / 1005);
+                    cloudMesh.rotateX((mousePosition.getY() - oldPosition.getY()) / 1005);
+                    oldPosition = mousePosition;
+                    console.log('New Postion : ' + mousePosition.getX());
+                    console.log('Old Postion : ' + oldPosition.getX());
+                }
+                else {
+                    oldPosition = mousePosition
+                }
+            }
+
+            function onScroll(a) {
+                console.log(a);
+            }
+
+            function onWindowResize() {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                render();
+            }
+
+
+            //Rendering.
+            function animate() {
+                requestAnimationFrame(animate);
+                mesh.rotation.x += 0.01;
+                mesh.rotation.y += 0.02;
+                controls.update();
+                console.log(controls);
+                render();
+            }
+            function render() {
+                renderer.render(scene, camera);
+            }
+        }
+    </script>
+</head>
+<body>
+
+</body>
+</html>
