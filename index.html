@@ -2,176 +2,123 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <title></title>
+    <!--Include Scripts-->
     <script src="three.js" ></script>
     <script src="https://dl.dropboxusercontent.com/u/3587259/Code/Threejs/OrbitControls.js"></script>
-    <script src="StereoEffect.js">
-
-    </script>
+    <script src="StereoEffect.js"></script>
     <script src="VRControls.js"></script>
     <script src="VREffect.js"></script>
     <script src="DeviceOrientationControls.js"></script>
-    <!--<script>
-        var Entity = function Entity() {
-            var isVisible = true;
-            var geometry, material, mesh;
-            var object = this;
-            var position;
+    <!--End of Include Scripts-->
 
-            object.isVisible = function () {
-                return isVisible;
-            }            
-
-            object.hide = function () {
-                isVisible = false;
-            }
-
-            object.show = function () {
-                isVisible = true;
-            }
-
-            object.reset = function () {
-                position = null;
-            }
-
-            object.update = function () {
-                
-            }
-
-            object.init = function () {
-                this.geometry = new THREE.BoxGeometry(200, 200, 200);
-                this.material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true, castShadow: true });
-                this.mesh = new THREE.Mesh(geometry, material);
-            }
-
-            object.getMesh = function () {
-                return this.mesh;
-            }
-
-            object.getMaterial = function () {
-                return this.material;
-            }
-
-            object.getGeometry = function () {
-                return this.geometry;
-            }
+    <!--Inline Shaders-->
+    <script id="vertexShader" type="x-shader/x-vertex">
+        varying vec3 vNormal;
+        void main()
+        {
+            vNormal = normalize( normalMatrix * normal );
+            gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
         }
-        
-        var box;
-        var gameobjects = [];
-        this.onload = function () {
-            var scene, camera, renderer;
-            var geometry, material, mesh;
-
-            init();
-            animate();
-
-            function init() {
-                scene = new THREE.Scene();
-                var box = new Entity();
-                box.init();
-                scene.add(box.getMesh());
-                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
-                camera.position.z = 1000;
-
-                gameobjects.push(box);
-                renderer = new THREE.WebGLRenderer();
-                console.log(box);
-                renderer.setSize(window.innerWidth, window.innerHeight);
-
-                document.body.appendChild(renderer.domElement);
-                renderer.render(scene, camera, box, true);
-            }
-
-            function animate() {
-                requestAnimationFrame(animate);
-                gameobjects.forEach(function (obj) {
-                    obj.rotation.x += 0.01;
-                });
-
-                renderer.render(scene, camera);
-
-            }
+    </script>
+    <script id="fragmentShader" type="x-shader/x-pixel">
+        varying vec3 vNormal;
+        void main()
+        {
+            float intensity = pow( 0.27 - dot( vNormal, vec3( 0.0, 0.0, 1.0 ) ), 4.1 );
+            gl_FragColor = vec4( 189.0 / 255.0, 190.0 / 255.0, 192.0 / 255.0, 1.0 ) * intensity;
         }
-    </script>-->
+    </script>
+    <!--End of Inline Shaders-->
+
+    <!--Custom JS for definitions-->
+    <script src="js/DS.js"></script>
+    <script src="js/Constants.js"></script>
+    <!--End of Custom SScripts-->
     <script>
-        var Vector2 = function(x, y) {
-            var x, y;
-            this.x = x;
-            this.y = y;
-            this.getX = function () {
-                return this.x;
-            }
-            this.getY = function () {
-                return this.y;
-            }
-            this.setX = function (x) {
-                this.x = x;
-            }
-            this.setY = function (y) {
-                this.y = y;
-            }
-        }
-
-        var skyboxSrc = [
-            'skybox/xp.jpg',
-            'skybox/xn.jpg',
-            'skybox/yn.jpg',
-            'skybox/yn.jpg',
-            'skybox/zp.jpg',
-            'skybox/zn.jpg'
-        ];
-
         var controls = null;
-        var vrController = null;
-        var effect = null;
+
+        // Start
         this.onload = function () {
-            var scene, camera, renderer, mesh;
-            var mesh2, mesh3, cloudMesh;
+            // Global vars
+            var scene, camera, renderer;
+            var mesh2, mesh3;
+            var moonMesh = null;
+            
+            // Global Geometry
+            var geometry = null;
+            var sunGrp = null;
             var FAR = 1000;
             init();
             animate();
-
+            setTimeout(animate(), 1000 / 60);
             function init() {
                 scene = new THREE.Scene();
                 camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 100000);
                 camera.position.z = FAR;
+
                 // Lights
-                var dirLight = new THREE.DirectionalLight(0xffffff);
+                var dirLight = new THREE.DirectionalLight(0xffffff, 0.35);
                 dirLight.position.set(0, 1, 1).normalize();
                 scene.add(dirLight);
 
-                var geometry = new THREE.CubeGeometry(200, 200, 200);
-                var boxMaterial = new THREE.MeshPhongMaterial({ map: new THREE.ImageUtils.loadTexture('1.jpg'),color: 0xffffff, wireframe: false, ambient: 0x050505, specular: 0x555555, shininess: 10 });
-
-                mesh = new THREE.Mesh(geometry, boxMaterial);
-                //mesh.position.set(0, 0, 0);
-                scene.add(mesh);
-
+                geometry = new THREE.CubeGeometry(200, 200, 200);
+                
                 geometry = new THREE.SphereGeometry(250, 100, 100);
-                var sphereMaterial = new THREE.MeshPhongMaterial({ map: new THREE.ImageUtils.loadTexture('earth.jpg'), specularMap: new THREE.ImageUtils.loadTexture('earthSpec.jpg'), specular: new THREE.Color('grey'), bumpScale: 100, bumpMap: new THREE.ImageUtils.loadTexture('earthNormal.jpg'), color: 0xffffff, wireframe: false, ambient: 0x050505, specular: 0x555555, shininess: 10 });
+                var sphereMaterial = new THREE.MeshPhongMaterial({
+                    map: new THREE.ImageUtils.loadTexture('Textures/earth.jpg'),
+                    specularMap: new THREE.ImageUtils.loadTexture('Textures/earthSpec.jpg'),
+                    specular: new THREE.Color('white'),
+                    bumpScale: 35,
+                    skinning: false,
+                    refractionRatio: 0.05,
+                    bumpMap: new THREE.ImageUtils.loadTexture('Textures/earthNormal.jpg'),
+                    color: 0xffffff,
+                    wireframe: false,
+                    ambient: 0x050505,
+                    specular: 0x555500,
+                    shininess: 0.05
+                });
                 mesh2 = new THREE.Mesh(geometry, sphereMaterial);
-                mesh2.position.set(-600, 0, 0);
+                mesh2.position.set(-300, 0, 0);
                 scene.add(mesh2);
 
-                geometry = new THREE.SphereGeometry(300, 100, 100);
-                var cloudMaterial = new THREE.MeshLambertMaterial({
-                    map: new THREE.Texture('cloudNormal.jpg'),
-                    side: THREE.FrontSide,
-                    opacity: 0.5,
-                    light: 100,
-                    transparent: true,
-                    //depthWrite: true,
+                // Moon and group setting
+                geometry = new THREE.SphereGeometry(85, 100, 100);
+                var moonTex = new THREE.MeshPhongMaterial({
+                    map: new THREE.ImageUtils.loadTexture('Textures/moonTex.jpg'),
+                    specular: new THREE.Color('grey'),
+                    bumpScale: 10,
+                    bumpMap: new THREE.ImageUtils.loadTexture('Textures/moonNor.jpg'),
                     color: 0xffffff,
-                    ambient: 0xffffff, specular: 0xffffff,
+                    wireframe: false,
+                    ambient: 0x050505,
+                    specular: 0x555555,
+                    shininess: 10
                 });
-                cloudMesh = new THREE.Mesh(geometry, cloudMaterial);
-                cloudMesh.position.set(-600, 0, 0);
-                scene.add(cloudMesh);
+                moonMesh = new THREE.Mesh(geometry, moonTex);               
+                moonMesh.position.set(-600, -500, 0);
+                scene.add(moonMesh);
 
+                //Sun Glow
+                var customMaterial = new THREE.ShaderMaterial(
+	                                {
+	                                    uniforms: {},
+	                                    vertexShader: document.getElementById('vertexShader').textContent,
+	                                    fragmentShader: document.getElementById('fragmentShader').textContent,
+	                                    side: THREE.BackSide,
+	                                    blending: THREE.AdditiveBlending,
+	                                    transparent: true
+	                                });
 
-                var ptLight = new THREE.PointLight(0xffffff, 10, 1000);
-                ptLight.position.set(-600, -300, 0);
-                scene.add(ptLight);
+                var ballGeometry = new THREE.SphereGeometry(3000, 100, 100);
+                var ball = new THREE.Mesh(ballGeometry, customMaterial);
+                var ptLight = new THREE.PointLight(0xafafaf, 2, 100000);
+                
+                sunGrp = new THREE.Group();
+                sunGrp.position.set(-10000, 50, 350);
+                sunGrp.add(ball);
+                sunGrp.add(ptLight);
+                scene.add(sunGrp);
 
                 //skybox stuff
                 var cubemap = THREE.ImageUtils.loadTextureCube(skyboxSrc); // load textures
@@ -199,12 +146,7 @@
                 document.body.appendChild(renderer.domElement);
                 controls = new THREE.OrbitControls(camera, renderer.domElement);
                 controls.addEventListener('change', render);
-
-                effect = new THREE.VREffect(renderer);
-                effect.setSize(window.innerWidth, window.innerHeight);
-                vrController = new THREE.VREffect(renderer);
                 this.onresize = onWindowResize;
-                this.onmousemove = onMouseDown;
             }
 
 
@@ -219,8 +161,6 @@
                 {
                     //mesh2.rotateY((mousePosition.getX() - oldPosition.getX()) / 1000);
                     //mesh2.rotateX((mousePosition.getY() - oldPosition.getY()) / 1000);
-                    //cloudMesh.rotateY((mousePosition.getX() - oldPosition.getX()) / 1005);
-                    //cloudMesh.rotateX((mousePosition.getY() - oldPosition.getY()) / 1005);
                     
                     console.log('New Postion : ' + mousePosition.getX());
                     console.log('Old Postion : ' + oldPosition.getX());
@@ -232,15 +172,13 @@
             }
 
             function onScroll(a) {
-                console.log(a);
+                // console.log(a);
             }
 
             function onWindowResize() {
                 camera.aspect = window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
                 renderer.setSize(window.innerWidth, window.innerHeight);
-
-                effect.setSize(window.innerWidth, window.innerHeight);
                 render();
             }
 
@@ -248,18 +186,15 @@
             //Rendering.
             function animate() {
                 requestAnimationFrame(animate);
-                mesh.rotation.x += 0.01;
-                mesh.rotation.y += 0.02;
-                mesh2.rotation.x += 0.04;
-                mesh2.rotation.y += 0.06;
+                mesh2.rotation.x += 0.0004;
+                mesh2.translateX(0.00001);
+                mesh2.translateY(0.000005);
+                mesh2.rotation.y += 0.002;
                 controls.update();
-                console.log(controls);
-                vrController.update(scene);
                 render();
             }
             function render() {
                 renderer.render(scene, camera);
-                effect.render(scene, camera);
             }
         }
     </script>
